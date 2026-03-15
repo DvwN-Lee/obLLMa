@@ -107,17 +107,21 @@ python run.py --scenario s3 --base-url http://localhost:8000
 
 2번째 모델을 pull하고 S5를 실행하여 `$model` 드롭다운 필터링이 동작하는지 검증한다.
 
-```bash
-# 2번째 모델 pull (경량 모델 권장)
-ollama pull qwen2.5:1.5b
-# 또는 Docker 사용 시:
-# docker compose exec ollama ollama pull qwen2.5:1.5b
+> `--model`은 단일 값 인수이므로, S5의 멀티모델 비교는 `--model` 없이 실행해야 한다.
+> `--model` 생략 시 scenarios.py 기본값(`qwen2.5:7b`, `qwen2.5:14b`)이 순차 실행된다.
 
-python run.py --scenario s5 --base-url http://localhost:8000 --model qwen2.5:7b --model qwen2.5:1.5b
+```bash
+# 2번째 모델 pull (S5 기본값: qwen2.5:14b)
+ollama pull qwen2.5:14b
+# 또는 Docker 사용 시:
+# docker compose exec ollama ollama pull qwen2.5:14b
+
+# --model 생략 → 두 모델(qwen2.5:7b, qwen2.5:14b) 순차 비교
+python run.py --scenario s5 --base-url http://localhost:8000
 ```
 
 **확인 패널**:
-- Model Info → 두 모델 표시 (qwen2.5:7b, qwen2.5:1.5b)
+- Model Info → 두 모델 표시 (qwen2.5:7b, qwen2.5:14b)
 - Grafana 상단 `$model` 드롭다운 → 모델별 필터링 동작
 - Tokens Per Second → 모델별 TPS 차이 시각화
 
@@ -161,4 +165,4 @@ S3은 20건 혼합 프롬프트(short/medium/long)로 시간이 오래 걸리므
 | 8 | TPOT | Step 2+ | TPOT 그래프 |
 | 9 | Input vs Output Tokens | Step 2+ | 두 라인 (input/output) |
 | 10 | Model Info | 항상 | qwen2.5:7b, Q4_K_M |
-| 11 | $model 필터 | Step 5 | 드롭다운 선택 시 패널 필터링 |
+| 11 | $model 필터 | Step 5 | 두 모델(7b, 14b) 드롭다운 필터링 동작 |
