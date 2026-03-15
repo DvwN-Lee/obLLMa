@@ -104,7 +104,7 @@ python run.py --scenario s1 --base-url http://localhost:8000
 
 `http://localhost:3000` 에 접속하면 LLM Serving Overview 대시보드가 자동 프로비저닝됩니다.
 
-<!-- TODO: 부하 테스트 후 스크린샷 추가 -->
+![Grafana LLM Serving Overview](docs/screenshots/grafana-dashboard.png)
 
 ### Dashboard Panels
 

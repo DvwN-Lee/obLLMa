@@ -15,34 +15,26 @@
   "templating": {
     "list": [
       {
-        "name": "datasource",
-        "type": "datasource",
-        "label": "Datasource",
-        "pluginId": "prometheus",
-        "refresh": 1,
-        "hide": 0,
-        "current": {}
-      },
-      {
         "name": "model",
         "type": "query",
         "label": "Model",
         "datasource": {
           "type": "prometheus",
-          "uid": "${datasource}"
+          "uid": "prometheus"
         },
         "definition": "label_values(llm_requests_total, model)",
-        "query": {
-          "query": "label_values(llm_requests_total, model)",
-          "refId": "StandardVariableQuery"
-        },
+        "query": "label_values(llm_requests_total, model)",
         "refresh": 2,
         "multi": true,
         "includeAll": true,
         "allValue": ".*",
         "sort": 1,
         "hide": 0,
-        "current": {}
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        }
       }
     ]
   },
@@ -54,7 +46,7 @@
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -88,7 +80,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "sum by (model) (rate(llm_requests_total{model=~\"$model\"}[5m]))",
           "legendFormat": "{{model}}",
@@ -103,7 +95,7 @@
       "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -139,7 +131,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "sum(rate(llm_request_errors_total{model=~\"$model\"}[5m])) / sum(rate(llm_requests_total{model=~\"$model\"}[5m])) * 100",
           "legendFormat": "Error Rate",
@@ -154,7 +146,7 @@
       "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -189,7 +181,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "llm_active_requests",
           "legendFormat": "Active Requests",
@@ -204,7 +196,7 @@
       "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -239,7 +231,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "llm_queue_depth",
           "legendFormat": "Queue Depth",
@@ -254,7 +246,7 @@
       "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -301,7 +293,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.50, sum(rate(llm_request_duration_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P50",
@@ -310,7 +302,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P95",
@@ -319,7 +311,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.99, sum(rate(llm_request_duration_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P99",
@@ -334,7 +326,7 @@
       "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -381,7 +373,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.50, sum(rate(llm_ttft_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P50",
@@ -390,7 +382,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.95, sum(rate(llm_ttft_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P95",
@@ -399,7 +391,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.99, sum(rate(llm_ttft_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P99",
@@ -414,7 +406,7 @@
       "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -461,7 +453,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.50, sum(rate(llm_tokens_per_second_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P50",
@@ -470,7 +462,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.95, sum(rate(llm_tokens_per_second_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P95",
@@ -485,7 +477,7 @@
       "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -532,7 +524,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.50, sum(rate(llm_time_per_output_token_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P50",
@@ -541,7 +533,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "histogram_quantile(0.95, sum(rate(llm_time_per_output_token_seconds_bucket{model=~\"$model\"}[5m])) by (le))",
           "legendFormat": "P95",
@@ -556,7 +548,7 @@
       "gridPos": { "x": 0, "y": 20, "w": 12, "h": 6 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -603,7 +595,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "sum by (model) (rate(llm_input_tokens_total{model=~\"$model\"}[5m]))",
           "legendFormat": "Input - {{model}}",
@@ -612,7 +604,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "sum by (model) (rate(llm_output_tokens_total{model=~\"$model\"}[5m]))",
           "legendFormat": "Output - {{model}}",
@@ -627,7 +619,7 @@
       "gridPos": { "x": 12, "y": 20, "w": 12, "h": 6 },
       "datasource": {
         "type": "prometheus",
-        "uid": "${datasource}"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -678,7 +670,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "prometheus"
           },
           "expr": "llm_model_loaded",
           "legendFormat": "",
