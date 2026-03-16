@@ -16,7 +16,7 @@ llm-serving-observability 프로젝트의 개선사항을 우선순위별로 추
 | # | 영역 | 조치 | 상태 |
 |---|------|------|:----:|
 | 1 | Documentation | README.md clone URL 및 벤치마크 요약 추가 | Done |
-| 2 | Metadata | tasks.md Status 갱신 | Done |
+| 2 | Metadata | tasks.md Status 갱신 (T-006 Partial) | Done |
 
 ### P1: 단기 (스크립트/코드)
 

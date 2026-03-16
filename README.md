@@ -104,7 +104,9 @@ python run.py --scenario s1 --base-url http://localhost:8000
 
 `http://localhost:3000` 에 접속하면 LLM Serving Overview 대시보드가 자동 프로비저닝됩니다.
 
-![Grafana LLM Serving Overview](docs/screenshots/grafana-dashboard.png)
+| Before Load | After Load |
+|:-----------:|:----------:|
+| ![Baseline](docs/screenshots/grafana-dashboard-baseline.png) | ![Under Load](docs/screenshots/grafana-dashboard.png) |
 
 ### Dashboard Panels
 
@@ -137,10 +139,10 @@ qwen2.5:7b (Q4_K_M) on Apple Silicon Docker Desktop (CPU mode):
 
 | Scenario | TTFT P50 | TPS Avg | Duration P50 | Errors |
 |----------|----------|---------|--------------|--------|
-| S1 Baseline (concurrency 1) | 0.75s | 9.8 tok/s | 33.1s | 0% |
+| S1 Baseline (concurrency 1) | 0.8s | 9.8 tok/s | 33.1s | 0% |
 | S3 Sustained (concurrency 4, 20 req) | 161.1s | 3.0 tok/s | 292.6s | 0% |
 
-**Key Insight**: Under load, TTFT degrades 200x (0.8s → 212s) while TPS only drops 3x — TTFT is the canary metric that captures queuing effects invisible to throughput alone.
+**Key Insight**: Under load, TTFT degrades ~264x (0.8s → 212s) while TPS only drops 3x — TTFT is the canary metric that captures queuing effects invisible to throughput alone.
 
 See [benchmarks/results.md](benchmarks/results.md) for full data and analysis.
 

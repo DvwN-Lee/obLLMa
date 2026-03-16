@@ -32,6 +32,6 @@
 
 ## Key Insights
 
-1. **TTFT is the canary metric**: Under load, TTFT degrades 200x (0.8s -> 212s) while TPS only drops 3x. TTFT captures queuing effects that TPS alone cannot.
+1. **TTFT is the canary metric**: Under load, TTFT degrades ~264x (0.8s -> 212s) while TPS only drops 3x. TTFT captures queuing effects that TPS alone cannot.
 2. **CPU vs GPU gap**: Docker CPU mode (~10 TPS) vs native Metal would show significant improvement. The observability stack captures this difference.
 3. **Zero errors at load**: The semaphore-based concurrency control (MAX_CONCURRENT_REQUESTS=4) prevents OOM while maintaining 100% success rate.

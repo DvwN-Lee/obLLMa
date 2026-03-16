@@ -1,6 +1,6 @@
 # tasks.md: llm-serving-observability
 
-> **Phase**: 2 (DESIGN)
+> **Phase**: 4 (VERIFY)
 > **Track**: Feature
 > **입력**: docs/design.md
 
@@ -35,7 +35,7 @@ T-001 ──► T-002 ──► T-004 ──► T-006 ──► T-007
 | T-003 | Prometheus + Grafana 스택 | AC-003 | T-001 | G1 | Done |
 | T-004 | Grafana Dashboard 구현 | AC-004 | T-002, T-003 | G2 | Done |
 | T-005 | Load Generator 구현 | AC-005 | T-002 | G2 | Done |
-| T-006 | Model Comparison Benchmark | AC-006 | T-004, T-005 | G3 | Done |
+| T-006 | Model Comparison Benchmark | AC-006 | T-004, T-005 | G3 | Partial |
 | T-007 | README + Screenshots | AC-007 | T-006 | G4 | Done |
 
 ---
