@@ -30,13 +30,13 @@ T-001 ──► T-002 ──► T-004 ──► T-006 ──► T-007
 
 | Task ID | Description | AC | Depends | Group | Status |
 |---------|------------|----|---------|-------|--------|
-| T-001 | Docker Compose + Ollama 연동 | AC-001 | - | G0 | Todo |
-| T-002 | LLM Proxy (FastAPI) 구현 | AC-002 | T-001 | G1 | Todo |
-| T-003 | Prometheus + Grafana 스택 | AC-003 | T-001 | G1 | Todo |
-| T-004 | Grafana Dashboard 구현 | AC-004 | T-002, T-003 | G2 | Todo |
-| T-005 | Load Generator 구현 | AC-005 | T-002 | G2 | Todo |
-| T-006 | Model Comparison Benchmark | AC-006 | T-004, T-005 | G3 | Todo |
-| T-007 | README + Screenshots | AC-007 | T-006 | G4 | Todo |
+| T-001 | Docker Compose + Ollama 연동 | AC-001 | - | G0 | Done |
+| T-002 | LLM Proxy (FastAPI) 구현 | AC-002 | T-001 | G1 | Done |
+| T-003 | Prometheus + Grafana 스택 | AC-003 | T-001 | G1 | Done |
+| T-004 | Grafana Dashboard 구현 | AC-004 | T-002, T-003 | G2 | Done |
+| T-005 | Load Generator 구현 | AC-005 | T-002 | G2 | Done |
+| T-006 | Model Comparison Benchmark | AC-006 | T-004, T-005 | G3 | Done |
+| T-007 | README + Screenshots | AC-007 | T-006 | G4 | Done |
 
 ---
 

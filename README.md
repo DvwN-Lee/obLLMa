@@ -53,8 +53,8 @@ LLM 서빙의 관측 가능성(Observability)을 구축하는 프로젝트입니
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/your-username/llm-serving-observability.git
-cd llm-serving-observability
+git clone https://github.com/DvwN-Lee/obLLMa.git
+cd obLLMa
 cp .env.example .env  # 필요시 OLLAMA_BASE_URL 수정
 ```
 
@@ -130,6 +130,19 @@ python run.py --scenario s3  # Sustained Load: 4 동시, 20 요청
 python run.py --scenario s4  # Variable Prompt: 프롬프트 길이별 비교
 python run.py --scenario s5  # Model Comparison: 모델별 성능 비교
 ```
+
+## Benchmark Results
+
+qwen2.5:7b (Q4_K_M) on Apple Silicon Docker Desktop (CPU mode):
+
+| Scenario | TTFT P50 | TPS Avg | Duration P50 | Errors |
+|----------|----------|---------|--------------|--------|
+| S1 Baseline (concurrency 1) | 0.75s | 9.8 tok/s | 33.1s | 0% |
+| S3 Sustained (concurrency 4, 20 req) | 161.1s | 3.0 tok/s | 292.6s | 0% |
+
+**Key Insight**: Under load, TTFT degrades 200x (0.8s → 212s) while TPS only drops 3x — TTFT is the canary metric that captures queuing effects invisible to throughput alone.
+
+See [benchmarks/results.md](benchmarks/results.md) for full data and analysis.
 
 ## Tech Stack
 
