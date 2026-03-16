@@ -70,6 +70,20 @@ Grafana 열기: http://localhost:3000 (또는 `$GRAFANA_PORT`) → LLM → LLM S
 
 > **시간 범위 참고**: Docker CPU 환경은 시나리오 실행이 오래 걸리므로 **Last 45 minutes** ~ **Last 1 hour**로 설정해야 전체 데이터가 보인다. Native Metal GPU는 **Last 15 minutes**로 충분하다.
 
+### `--no-stream` 모드
+
+모든 시나리오는 `--no-stream` 플래그로 non-streaming 모드 실행이 가능하다:
+
+```bash
+# streaming (기본값)
+python run.py --scenario s1 --base-url http://localhost:8000
+
+# non-streaming
+python run.py --scenario s1 --base-url http://localhost:8000 --no-stream
+```
+
+Non-streaming 모드에서는 TTFT가 측정되지 않는다 (응답이 한 번에 반환되므로). Duration, TPS, Output Tokens는 동일하게 측정된다.
+
 ---
 
 ## Step 1: Error Rate 패널 데이터 생성 (30초)
@@ -97,6 +111,13 @@ echo ""
 ---
 
 ## Step 2: Baseline — Request Rate + 기본 메트릭 (Native ~2분 / Docker CPU ~6분)
+
+> **Warm-up**: `OLLAMA_KEEP_ALIVE=5m`으로 5분간 요청이 없으면 모델이 언로드된다. 시나리오 실행 전 warm-up 요청 1건을 보내 cold start를 회피한다:
+> ```bash
+> curl -s http://localhost:8000/v1/chat/completions \
+>   -H "Content-Type: application/json" \
+>   -d '{"model":"qwen2.5:7b","messages":[{"role":"user","content":"warmup"}],"stream":false}' > /dev/null
+> ```
 
 ```bash
 python run.py --scenario s1 --base-url http://localhost:8000

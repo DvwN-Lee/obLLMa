@@ -231,7 +231,8 @@ Template variable: `$model` (label_values from `llm_requests_total`)
 | Duration P99 | `histogram_quantile(0.99, sum(rate(llm_request_duration_seconds_bucket{model=~"$model"}[5m])) by (le))` |
 | TTFT P50 | `histogram_quantile(0.50, sum(rate(llm_ttft_seconds_bucket{model=~"$model"}[5m])) by (le))` |
 | TTFT P95 | `histogram_quantile(0.95, sum(rate(llm_ttft_seconds_bucket{model=~"$model"}[5m])) by (le))` |
-| TPS | `histogram_quantile(0.50, sum(rate(llm_tokens_per_second_bucket{model=~"$model"}[5m])) by (le))` |
+| TPS P50 | `histogram_quantile(0.50, sum(rate(llm_tokens_per_second_bucket{model=~"$model"}[5m])) by (le))` |
+| TPS P95 | `histogram_quantile(0.95, sum(rate(llm_tokens_per_second_bucket{model=~"$model"}[5m])) by (le))` |
 | TPOT P95 | `histogram_quantile(0.95, sum(rate(llm_time_per_output_token_seconds_bucket{model=~"$model"}[5m])) by (le))` |
 | Input Tokens Rate | `sum by (model) (rate(llm_input_tokens_total{model=~"$model"}[5m]))` |
 | Output Tokens Rate | `sum by (model) (rate(llm_output_tokens_total{model=~"$model"}[5m]))` |

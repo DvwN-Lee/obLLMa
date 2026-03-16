@@ -3,6 +3,7 @@
 **Date**: 2026-03-15
 **Hardware**: Apple Silicon (Docker Desktop, CPU mode — no Metal GPU passthrough)
 **Model**: qwen2.5:7b (Q4_K_M, 4.7GB)
+**Ollama**: v0.18.0, OLLAMA_NUM_THREADS=6, OLLAMA_KEEP_ALIVE=5m, OLLAMA_MAX_LOADED_MODELS=1
 **Proxy**: FastAPI + prometheus_client, MAX_CONCURRENT_REQUESTS=4
 
 ## S1 Baseline (Single Request Latency)
