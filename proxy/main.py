@@ -3,11 +3,12 @@
 import asyncio
 import json
 import logging
+import re
 import time
 
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from config import (
@@ -35,10 +36,41 @@ logger = logging.getLogger("llm-proxy")
 
 app = FastAPI(title="LLM Proxy", version="0.1.0")
 
-# Concurrency control
-_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
-_queue_waiters = 0
-_queue_lock = asyncio.Lock()
+# Model name validation pattern (M-3)
+_MODEL_NAME_RE = re.compile(r"^[a-zA-Z0-9.:_-]+$")
+
+
+# ---------------------------------------------------------------------------
+# MonitoredSemaphore (M-5: AC-002 item 8)
+# ---------------------------------------------------------------------------
+
+
+class MonitoredSemaphore:
+    """Wraps asyncio.Semaphore with automatic Prometheus gauge tracking."""
+
+    def __init__(self, max_concurrent: int) -> None:
+        self._semaphore = asyncio.Semaphore(max_concurrent)
+        self._queue_waiters = 0
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        async with self._lock:
+            self._queue_waiters += 1
+            QUEUE_DEPTH.set(self._queue_waiters)
+        try:
+            await self._semaphore.acquire()
+        finally:
+            async with self._lock:
+                self._queue_waiters -= 1
+                QUEUE_DEPTH.set(self._queue_waiters)
+        ACTIVE_REQUESTS.inc()
+
+    def release(self) -> None:
+        ACTIVE_REQUESTS.dec()
+        self._semaphore.release()
+
+
+_semaphore = MonitoredSemaphore(MAX_CONCURRENT_REQUESTS)
 
 # httpx client with no read timeout (LLM responses can take 30-120s)
 _http_client: httpx.AsyncClient | None = None
@@ -50,6 +82,10 @@ async def get_client() -> httpx.AsyncClient:
         _http_client = httpx.AsyncClient(
             base_url=OLLAMA_BASE_URL,
             timeout=httpx.Timeout(connect=10.0, read=None, write=10.0, pool=10.0),
+            limits=httpx.Limits(
+                max_connections=MAX_CONCURRENT_REQUESTS * 2,
+                max_keepalive_connections=MAX_CONCURRENT_REQUESTS,
+            ),
         )
     return _http_client
 
@@ -82,8 +118,8 @@ async def health():
 
 @app.get("/metrics")
 async def metrics():
-    return StreamingResponse(
-        iter([generate_latest()]),
+    return Response(
+        content=generate_latest(),
         media_type=CONTENT_TYPE_LATEST,
     )
 
@@ -92,7 +128,14 @@ async def metrics():
 async def chat_completions(request: Request):
     body = await request.json()
     model = body.get("model", DEFAULT_MODEL)
-    stream = body.get("stream", True)
+    stream = bool(body.get("stream", True))
+
+    # M-3: model name validation
+    if not _MODEL_NAME_RE.match(model):
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Invalid model name: {model}"},
+        )
 
     # Ensure stream_options.include_usage for streaming
     if stream:
@@ -100,41 +143,32 @@ async def chat_completions(request: Request):
         stream_options["include_usage"] = True
         body["stream_options"] = stream_options
 
-    # Queue tracking
-    global _queue_waiters
-    async with _queue_lock:
-        _queue_waiters += 1
-        QUEUE_DEPTH.set(_queue_waiters)
-
-    try:
-        await _semaphore.acquire()
-    finally:
-        async with _queue_lock:
-            _queue_waiters -= 1
-            QUEUE_DEPTH.set(_queue_waiters)
-
-    ACTIVE_REQUESTS.inc()
+    await _semaphore.acquire()
     start = time.monotonic()
 
+    # C-1: Streaming path — semaphore ownership transfers to event_generator()
+    if stream:
+        return await _handle_streaming(body, model, start)
+
+    # Non-streaming path — semaphore released in finally
     try:
-        if stream:
-            return await _handle_streaming(body, model, start)
-        else:
-            return await _handle_non_streaming(body, model, start)
+        return await _handle_non_streaming(body, model, start)
     except httpx.HTTPStatusError as exc:
         status_code = str(exc.response.status_code)
         REQUEST_ERRORS.labels(model=model, status_code=status_code).inc()
-        REQUESTS_TOTAL.labels(model=model, status="error", stream=str(stream).lower()).inc()
-        raise
+        REQUESTS_TOTAL.labels(model=model, status="error", stream="false").inc()
+        return JSONResponse(
+            status_code=int(exc.response.status_code),
+            content={"error": f"Ollama returned {exc.response.status_code}"},
+        )
     except Exception:
         REQUEST_ERRORS.labels(model=model, status_code="502").inc()
-        REQUESTS_TOTAL.labels(model=model, status="error", stream=str(stream).lower()).inc()
+        REQUESTS_TOTAL.labels(model=model, status="error", stream="false").inc()
         return JSONResponse(
             status_code=502,
             content={"error": "Failed to connect to Ollama"},
         )
     finally:
-        ACTIVE_REQUESTS.dec()
         _semaphore.release()
 
 
@@ -147,63 +181,79 @@ async def _handle_streaming(body: dict, model: str, start: float):
     client = await get_client()
 
     async def event_generator():
-        first_token_seen = False
-        output_tokens = 0
+        # C-1: semaphore ownership is inside the generator
+        try:
+            first_token_seen = False
+            output_tokens = 0
 
-        async with client.stream(
-            "POST", "/v1/chat/completions", json=body
-        ) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if not line.startswith("data: "):
-                    if line.strip():
-                        yield line + "\n\n"
-                    continue
+            async with client.stream(
+                "POST", "/v1/chat/completions", json=body
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        if line.strip():
+                            yield line + "\n\n"
+                        continue
 
-                data_str = line[6:]
-                yield f"data: {data_str}\n\n"
+                    data_str = line[6:]
+                    yield f"data: {data_str}\n\n"
 
-                if data_str.strip() == "[DONE]":
-                    continue
+                    if data_str.strip() == "[DONE]":
+                        continue
 
-                try:
-                    chunk = json.loads(data_str)
-                except json.JSONDecodeError:
-                    continue
+                    try:
+                        chunk = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue
 
-                # TTFT: first chunk with content
-                if not first_token_seen:
-                    choices = chunk.get("choices", [])
-                    if choices:
-                        delta = choices[0].get("delta", {})
-                        if delta.get("content"):
-                            ttft_val = time.monotonic() - start
-                            TTFT.labels(model=model).observe(ttft_val)
-                            first_token_seen = True
+                    # TTFT: first chunk with content
+                    if not first_token_seen:
+                        choices = chunk.get("choices", [])
+                        if choices:
+                            delta = choices[0].get("delta", {})
+                            if delta.get("content"):
+                                ttft_val = time.monotonic() - start
+                                TTFT.labels(model=model).observe(ttft_val)
+                                first_token_seen = True
 
-                # Usage info (final chunk)
-                usage = chunk.get("usage")
-                if usage:
-                    prompt_tokens = usage.get("prompt_tokens", 0)
-                    completion_tokens = usage.get("completion_tokens", 0)
-                    output_tokens = completion_tokens
+                    # Usage info (final chunk)
+                    usage = chunk.get("usage")
+                    if usage:
+                        prompt_tokens = usage.get("prompt_tokens", 0)
+                        completion_tokens = usage.get("completion_tokens", 0)
+                        output_tokens = completion_tokens
 
-                    INPUT_TOKENS.labels(model=model).inc(prompt_tokens)
-                    OUTPUT_TOKENS.labels(model=model).inc(completion_tokens)
+                        INPUT_TOKENS.labels(model=model).inc(prompt_tokens)
+                        OUTPUT_TOKENS.labels(model=model).inc(completion_tokens)
 
-        # Record duration and throughput metrics
-        duration = time.monotonic() - start
-        REQUEST_DURATION.labels(model=model).observe(duration)
+            # Record duration and throughput after [DONE]
+            duration = time.monotonic() - start
+            REQUEST_DURATION.labels(model=model).observe(duration)
 
-        if output_tokens > 0:
-            tps = output_tokens / duration
-            TOKENS_PER_SECOND.labels(model=model).observe(tps)
-            tpot = duration / output_tokens
-            TIME_PER_OUTPUT_TOKEN.labels(model=model).observe(tpot)
+            if output_tokens > 0:
+                tps = output_tokens / duration
+                TOKENS_PER_SECOND.labels(model=model).observe(tps)
+                tpot = duration / output_tokens
+                TIME_PER_OUTPUT_TOKEN.labels(model=model).observe(tpot)
 
-        REQUESTS_TOTAL.labels(
-            model=model, status="success", stream="true"
-        ).inc()
+            REQUESTS_TOTAL.labels(
+                model=model, status="success", stream="true"
+            ).inc()
+
+        except httpx.HTTPStatusError as exc:
+            # M-1: streaming error metric recording
+            status_code = str(exc.response.status_code)
+            REQUEST_ERRORS.labels(model=model, status_code=status_code).inc()
+            REQUESTS_TOTAL.labels(model=model, status="error", stream="true").inc()
+            logger.error("Streaming error: Ollama returned %s for model %s", status_code, model)
+        except Exception as exc:
+            REQUEST_ERRORS.labels(model=model, status_code="502").inc()
+            REQUESTS_TOTAL.labels(model=model, status="error", stream="true").inc()
+            logger.error("Streaming error: %s", exc)
+        finally:
+            # C-1: release semaphore after streaming completes (not immediately)
+            _semaphore.release()
 
     return StreamingResponse(
         event_generator(),
@@ -256,28 +306,39 @@ async def _handle_non_streaming(body: dict, model: str, start: float):
 # ---------------------------------------------------------------------------
 
 
+_known_models: set[tuple[str, str]] = set()
+
+
 async def _poll_model_status():
     """Periodically check Ollama for loaded models and update M11 gauge."""
+    global _known_models
     while True:
         try:
             client = await get_client()
             resp = await client.get("/api/ps", timeout=5.0)
             if resp.status_code == 200:
                 data = resp.json()
-                # Reset all model_loaded to 0, then set loaded ones to 1
-                # prometheus_client doesn't support clearing label sets,
-                # so we track known models
                 models = data.get("models", [])
+                current: set[tuple[str, str]] = set()
                 for m in models:
                     name = m.get("name", "unknown")
                     details = m.get("details", {})
                     quant = details.get("quantization_level", "unknown")
                     MODEL_LOADED.labels(model=name, quantization=quant).set(1)
+                    current.add((name, quant))
+                for name, quant in _known_models - current:
+                    MODEL_LOADED.labels(model=name, quantization=quant).set(0)
+                _known_models = current
         except Exception:
             pass
         await asyncio.sleep(30)
 
 
+_background_tasks: set[asyncio.Task] = set()
+
+
 @app.on_event("startup")
 async def startup():
-    asyncio.create_task(_poll_model_status())
+    task = asyncio.create_task(_poll_model_status())
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)

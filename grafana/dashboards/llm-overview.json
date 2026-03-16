@@ -24,7 +24,7 @@
         },
         "definition": "label_values(llm_requests_total, model)",
         "query": "label_values(llm_requests_total, model)",
-        "refresh": 2,
+        "refresh": 1,
         "multi": true,
         "includeAll": true,
         "allValue": ".*",
