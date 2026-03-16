@@ -21,7 +21,7 @@ llm-serving-observability 프로젝트 관리 시 반드시 준수해야 하는 
 
 ### 금지 행동
 
-- `docs/handoffs/` 내 파일 수정 또는 생성 (Human 전용 영역)
+- `docs/handoffs/HANDOFF.md` 수정 또는 생성 (Human 전용 대시보드). `phase-N-*.md` 생성은 Agent 허용.
 - 메트릭 이름·타입·레이블 변경 시 대시보드 JSON 동기화 없이 커밋
 - Ollama 모델을 Docker 이미지에 번들링 (용량 문제, 런타임 pull 사용)
 - `.env` 파일에 실제 시크릿 커밋 (`.env.example`만 버전 관리)
