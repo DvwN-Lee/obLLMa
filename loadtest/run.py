@@ -56,6 +56,7 @@ class RunConfig:
     concurrency: int
     num_requests: int
     prompts: list[list[dict]]        # cycled across requests
+    stream: bool = True
 
 
 # ---------------------------------------------------------------------------
@@ -68,54 +69,24 @@ async def _send_request(
     config: RunConfig,
     prompt_index: int,
 ) -> RequestResult:
-    """Send one streaming chat completion and return measured metrics."""
+    """Send one chat completion (streaming or non-streaming) and return measured metrics."""
     messages = config.prompts[prompt_index % len(config.prompts)]
     payload: dict[str, Any] = {
         "model": config.model,
         "messages": messages,
-        "stream": True,
-        "stream_options": {"include_usage": True},
+        "stream": config.stream,
     }
+    if config.stream:
+        payload["stream_options"] = {"include_usage": True}
 
     result = RequestResult()
     start = time.monotonic()
 
     try:
-        async with client.stream(
-            "POST",
-            "/v1/chat/completions",
-            json=payload,
-        ) as resp:
-            resp.raise_for_status()
-
-            async for raw_line in resp.aiter_lines():
-                if not raw_line.startswith("data: "):
-                    continue
-
-                data_str = raw_line[6:].strip()
-
-                if data_str == "[DONE]":
-                    result.duration = time.monotonic() - start
-                    break
-
-                try:
-                    chunk = json.loads(data_str)
-                except json.JSONDecodeError:
-                    continue
-
-                # TTFT — first chunk that carries content text
-                if result.ttft is None:
-                    choices = chunk.get("choices", [])
-                    if choices:
-                        content = choices[0].get("delta", {}).get("content")
-                        if content:
-                            result.ttft = time.monotonic() - start
-
-                # Usage chunk — appears just before [DONE]
-                usage = chunk.get("usage")
-                if usage:
-                    result.output_tokens = usage.get("completion_tokens", 0)
-
+        if config.stream:
+            result = await _send_streaming(client, payload, start)
+        else:
+            result = await _send_non_streaming(client, payload, start)
     except httpx.HTTPStatusError as exc:
         result.error = f"HTTP {exc.response.status_code}"
     except httpx.RequestError as exc:
@@ -127,6 +98,52 @@ async def _send_request(
     if result.success and result.duration and result.output_tokens > 0:
         result.tps = result.output_tokens / result.duration
 
+    return result
+
+
+async def _send_streaming(
+    client: httpx.AsyncClient,
+    payload: dict[str, Any],
+    start: float,
+) -> RequestResult:
+    result = RequestResult()
+    async with client.stream("POST", "/v1/chat/completions", json=payload) as resp:
+        resp.raise_for_status()
+        async for raw_line in resp.aiter_lines():
+            if not raw_line.startswith("data: "):
+                continue
+            data_str = raw_line[6:].strip()
+            if data_str == "[DONE]":
+                result.duration = time.monotonic() - start
+                break
+            try:
+                chunk = json.loads(data_str)
+            except json.JSONDecodeError:
+                continue
+            if result.ttft is None:
+                choices = chunk.get("choices", [])
+                if choices:
+                    content = choices[0].get("delta", {}).get("content")
+                    if content:
+                        result.ttft = time.monotonic() - start
+            usage = chunk.get("usage")
+            if usage:
+                result.output_tokens = usage.get("completion_tokens", 0)
+    return result
+
+
+async def _send_non_streaming(
+    client: httpx.AsyncClient,
+    payload: dict[str, Any],
+    start: float,
+) -> RequestResult:
+    result = RequestResult()
+    resp = await client.post("/v1/chat/completions", json=payload)
+    resp.raise_for_status()
+    result.duration = time.monotonic() - start
+    data = resp.json()
+    usage = data.get("usage", {})
+    result.output_tokens = usage.get("completion_tokens", 0)
     return result
 
 
@@ -280,6 +297,7 @@ async def _run_simple(
     base_url: str,
     model: str,
     label: str = "",
+    stream: bool = True,
 ) -> None:
     """Run a scenario with a single fixed concurrency level."""
     config = RunConfig(
@@ -288,6 +306,7 @@ async def _run_simple(
         concurrency=scenario["concurrency"],
         num_requests=scenario["num_requests"],
         prompts=scenario["prompts"],
+        stream=stream,
     )
     t0 = time.monotonic()
     results = await run_batch(config)
@@ -295,7 +314,7 @@ async def _run_simple(
     _print_summary(scenario["name"], label, results, wall)
 
 
-async def _run_sweep(scenario: dict, base_url: str, model: str) -> None:
+async def _run_sweep(scenario: dict, base_url: str, model: str, stream: bool = True) -> None:
     """S2: run each concurrency level sequentially."""
     levels: list[int] = scenario["concurrency"]
     for level in levels:
@@ -305,6 +324,7 @@ async def _run_sweep(scenario: dict, base_url: str, model: str) -> None:
             concurrency=level,
             num_requests=scenario["num_requests"],
             prompts=scenario["prompts"],
+            stream=stream,
         )
         t0 = time.monotonic()
         results = await run_batch(config)
@@ -312,7 +332,7 @@ async def _run_sweep(scenario: dict, base_url: str, model: str) -> None:
         _print_summary(scenario["name"], f"concurrency={level}", results, wall)
 
 
-async def _run_variable_prompt(scenario: dict, base_url: str, model: str) -> None:
+async def _run_variable_prompt(scenario: dict, base_url: str, model: str, stream: bool = True) -> None:
     """S4: run short / medium / long prompt pools separately at fixed concurrency."""
     pools: dict[str, list[list[dict]]] = scenario["prompts"]
     for size_label, prompts in pools.items():
@@ -320,14 +340,13 @@ async def _run_variable_prompt(scenario: dict, base_url: str, model: str) -> Non
             **scenario,
             "prompts": prompts,
         }
-        await _run_simple(sub_scenario, base_url, model, label=f"prompt={size_label}")
+        await _run_simple(sub_scenario, base_url, model, label=f"prompt={size_label}", stream=stream)
 
 
-async def _run_model_comparison(scenario: dict, base_url: str, model_override: str | None) -> None:
+async def _run_model_comparison(scenario: dict, base_url: str, model_override: str | None, stream: bool = True) -> None:
     """S5: run same scenario sequentially for each model."""
     models: list[str] = scenario.get("models", [])
     if model_override:
-        # If caller forced a single model, respect that
         models = [model_override]
     for mdl in models:
         sub_scenario = {**scenario}
@@ -338,6 +357,7 @@ async def _run_model_comparison(scenario: dict, base_url: str, model_override: s
             concurrency=sub_scenario["concurrency"],
             num_requests=sub_scenario["num_requests"],
             prompts=sub_scenario["prompts"],
+            stream=stream,
         )
         results = await run_batch(config)
         wall = time.monotonic() - t0
@@ -352,6 +372,7 @@ async def _run_model_comparison(scenario: dict, base_url: str, model_override: s
 async def _dispatch(args: argparse.Namespace) -> None:
     scenario_key = args.scenario.lower()
     scenario = get_scenario(scenario_key)
+    use_stream = not args.no_stream
 
     # Resolve effective model: CLI flag > scenario default > proxy default (None)
     effective_model: str = args.model or scenario.get("model") or "qwen2.5:7b"
@@ -360,16 +381,17 @@ async def _dispatch(args: argparse.Namespace) -> None:
     print(f"Description     : {scenario['description']}")
     print(f"Base URL        : {args.base_url}")
     print(f"Model           : {effective_model if scenario_key != 's5' else '(per-model)'}")
+    print(f"Stream          : {use_stream}")
 
     if scenario_key == "s2":
-        await _run_sweep(scenario, args.base_url, effective_model)
+        await _run_sweep(scenario, args.base_url, effective_model, use_stream)
     elif scenario_key == "s4":
-        await _run_variable_prompt(scenario, args.base_url, effective_model)
+        await _run_variable_prompt(scenario, args.base_url, effective_model, use_stream)
     elif scenario_key == "s5":
-        await _run_model_comparison(scenario, args.base_url, args.model)
+        await _run_model_comparison(scenario, args.base_url, args.model, use_stream)
     else:
         # S1, S3 — simple fixed-concurrency run
-        await _run_simple(scenario, args.base_url, effective_model)
+        await _run_simple(scenario, args.base_url, effective_model, stream=use_stream)
 
 
 # ---------------------------------------------------------------------------
@@ -408,6 +430,12 @@ def _build_parser() -> argparse.ArgumentParser:
             "Model name override (e.g. qwen2.5:7b). "
             "Overrides scenario default. For S5, limits comparison to one model."
         ),
+    )
+    parser.add_argument(
+        "--no-stream",
+        action="store_true",
+        default=False,
+        help="Use non-streaming mode (default: streaming).",
     )
     return parser
 
