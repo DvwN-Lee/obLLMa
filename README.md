@@ -125,13 +125,28 @@ python run.py --scenario s1 --base-url http://localhost:8000
 
 ## Load Test Scenarios
 
+| Scenario | Description | Concurrency | Requests | Est. Time (Docker CPU) |
+|----------|-------------|:-----------:|:--------:|:----------------------:|
+| `s1` | Baseline: 단일 요청 레이턴시 | 1 | 5 | ~2.5분 |
+| `s-demo` | Demo: queuing 효과 경량 시연 | 2 | 6 | ~5분 |
+| `s2` | Concurrency Sweep: 1→16 동시 요청 | 1~16 | 25 | ~40분+ |
+| `s3` | Sustained Load: 혼합 프롬프트 | 4 | 20 | ~28분 |
+| `s4` | Variable Prompt: 프롬프트 길이별 비교 | 4 | 15 | ~20분+ |
+| `s5` | Model Comparison: 모델별 성능 비교 | 4 | 10 | 모델별 상이 |
+
+> S5는 qwen2.5:14b 사전 설치 필요 (`ollama pull qwen2.5:14b`). 미설치 모델은 자동 스킵됩니다.
+> 소요시간은 Docker Desktop CPU 모드 기준. Native Metal GPU는 3~5x 빠를 수 있습니다.
+
 ```bash
-python run.py --scenario s1  # Baseline: 단일 요청 레이턴시
-python run.py --scenario s2  # Concurrency Sweep: 1,2,4,8,16 동시 요청
-python run.py --scenario s3  # Sustained Load: 4 동시, 20 요청
-python run.py --scenario s4  # Variable Prompt: 프롬프트 길이별 비교
-python run.py --scenario s5  # Model Comparison: 모델별 성능 비교
+python run.py --scenario s1 --base-url http://localhost:8000
 ```
+
+### Recommended Demo Flow (~10분)
+
+1. `python run.py --scenario s1` — baseline 확인 (~2.5분)
+2. Grafana(`localhost:3000`) → 대시보드 부하 전 상태 관찰
+3. `python run.py --scenario s-demo` — queuing 효과 관찰 (~5분)
+4. Grafana → TTFT 악화, Queue Depth 증가 확인
 
 ## Benchmark Results
 

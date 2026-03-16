@@ -343,11 +343,38 @@ async def _run_variable_prompt(scenario: dict, base_url: str, model: str, stream
         await _run_simple(sub_scenario, base_url, model, label=f"prompt={size_label}", stream=stream)
 
 
+async def _check_available_models(ollama_url: str = "http://localhost:11434") -> set[str]:
+    """Query Ollama directly for installed models."""
+    try:
+        async with httpx.AsyncClient(base_url=ollama_url, timeout=10.0) as client:
+            resp = await client.get("/api/tags")
+            if resp.status_code == 200:
+                data = resp.json()
+                return {m["name"] for m in data.get("models", [])}
+    except Exception:
+        pass
+    return set()
+
+
 async def _run_model_comparison(scenario: dict, base_url: str, model_override: str | None, stream: bool = True) -> None:
     """S5: run same scenario sequentially for each model."""
     models: list[str] = scenario.get("models", [])
     if model_override:
         models = [model_override]
+
+    # Pre-check: warn and skip unavailable models (queries Ollama directly)
+    available = await _check_available_models()
+    if available:
+        missing = [m for m in models if m not in available]
+        if missing:
+            print(f"\n⚠ Models not installed: {', '.join(missing)}")
+            print(f"  Available: {', '.join(sorted(available))}")
+            print(f"  Skipping missing models. Install with: ollama pull <model>")
+            models = [m for m in models if m in available]
+        if not models:
+            print("  No models available to compare. Aborting S5.")
+            return
+
     for mdl in models:
         sub_scenario = {**scenario}
         t0 = time.monotonic()
@@ -390,7 +417,7 @@ async def _dispatch(args: argparse.Namespace) -> None:
     elif scenario_key == "s5":
         await _run_model_comparison(scenario, args.base_url, args.model, use_stream)
     else:
-        # S1, S3 — simple fixed-concurrency run
+        # S1, S3, S-Demo — simple fixed-concurrency run
         await _run_simple(scenario, args.base_url, effective_model, stream=use_stream)
 
 
@@ -414,7 +441,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--scenario",
         required=True,
         metavar="SCENARIO",
-        help="Scenario key: s1 | s2 | s3 | s4 | s5",
+        help="Scenario key: s1 | s2 | s3 | s4 | s5 | s-demo",
     )
     parser.add_argument(
         "--base-url",

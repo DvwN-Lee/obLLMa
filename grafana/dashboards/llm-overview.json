@@ -133,7 +133,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(llm_request_errors_total{model=~\"$model\"}[5m])) / sum(rate(llm_requests_total{model=~\"$model\"}[5m])) * 100",
+          "expr": "sum(rate(llm_request_errors_total{model=~\"$model\"}[5m])) / sum(rate(llm_requests_total{model=~\"$model\"}[5m])) * 100 or vector(0)",
           "legendFormat": "Error Rate",
           "refId": "A"
         }
