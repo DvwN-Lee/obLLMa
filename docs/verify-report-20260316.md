@@ -13,7 +13,7 @@
 
 | AC | 항목 | 판정 | 비고 |
 |----|------|------|------|
-| AC-001 | Docker Compose + Ollama | PASS | 전체 스택 헬스체크, .env.example, Hybrid Strategy |
+| AC-001 | Docker Compose + Ollama | PASS* | 전체 스택 헬스체크, Hybrid Strategy. *정정: .env.example은 당시 미존재 — D-1에서 후속 발견, 별도 fix로 해소 |
 | AC-002 | LLM Proxy | PASS | 11 메트릭, streaming/non-streaming, MonitoredSemaphore |
 | AC-003 | Prometheus + Grafana Stack | PASS | 스크래핑, 프로비저닝, 익명 Admin |
 | AC-004 | Grafana Dashboard | PASS | 10 패널, $model 변수, PromQL 정상 |
