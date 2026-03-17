@@ -168,6 +168,7 @@ See [benchmarks/results.md](benchmarks/results.md) for full data and analysis.
 
 ```
 ├── docker-compose.yml
+├── .env.example              # Environment variable defaults
 ├── proxy/
 │   ├── main.py              # FastAPI proxy + streaming pipeline
 │   ├── metrics.py            # Prometheus metric definitions (SSOT)
