@@ -1,6 +1,6 @@
 # llm-serving-observability 설계 문서
 
-> **status**: current
+> **status**: superseded-by-design-md
 > **작성일**: 2026-03-14
 > **레포**: `llm-serving-observability` (신규, GitHub 핀 슬롯 3)
 > **원안**: ai-agent-strategy.md Phase 3-B에서 분리·재정의
@@ -117,10 +117,12 @@ LLM Proxy가 요청을 중계하면서 토큰 수, 레이턴시, TTFT 등을 계
 
 ### 4-3. 시스템 메트릭 (Mac)
 
+> **Note**: design.md D-4에서 Phase 3 범위 제외 결정. proxy/metrics.py에 미정의.
+
 | 메트릭 | 타입 | 설명 |
 |--------|------|------|
-| `llm_memory_used_bytes` | Gauge | Ollama 프로세스 메모리 사용량 |
-| `llm_metal_gpu_utilization` | Gauge | Metal GPU 사용률 (powermetrics 기반) |
+| ~~`llm_memory_used_bytes`~~ | ~~Gauge~~ | ~~Ollama 프로세스 메모리 사용량~~ |
+| ~~`llm_metal_gpu_utilization`~~ | ~~Gauge~~ | ~~Metal GPU 사용률 (powermetrics 기반)~~ |
 
 ---
 
