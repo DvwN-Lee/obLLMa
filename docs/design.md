@@ -10,39 +10,24 @@
 
 ### 1-1. System Diagram
 
-```
-                macOS Host
- ┌────────────────────────────────────────┐
- │  Ollama (native, Metal GPU)            │
- │  localhost:11434                        │
- │  /v1/chat/completions (OpenAI compat)  │
- └──────────▲─────────────────────────────┘
-            │ ${OLLAMA_BASE_URL}
-            │ (default: http://ollama:11434)
- ┌──────────┼─────────────────────────────────────┐
- │          │          Docker Compose              │
- │  ┌───────┴──────────────────┐                   │
- │  │  LLM Proxy (FastAPI)      │──► /metrics      │
- │  │  :8000                    │    (Prometheus)   │
- │  │  /v1/chat/completions     │                   │
- │  │  /health                  │                   │
- │  └───────▲──────────────────┘                   │
- │          │ POST /v1/chat/completions             │
- │  ┌───────┴──────────────┐                        │
- │  │  Load Generator       │                        │
- │  │  (Python asyncio)     │                        │
- │  └──────────────────────┘                        │
- │                                                  │
- │  ┌──────────────┐    ┌────────────┐              │
- │  │  Prometheus   │───►│  Grafana    │             │
- │  │  :9090        │    │  :3000      │             │
- │  └──────────────┘    └────────────┘              │
- │                                                  │
- │  ┌──────────────┐ (docker-compose 포함, fallback) │
- │  │  Ollama       │                                │
- │  │  :11434       │                                │
- │  └──────────────┘                                │
- └──────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph host["macOS Host"]
+        ollama_native["Ollama (native, Metal GPU)<br/>localhost:11434<br/>/v1/chat/completions (OpenAI compat)"]
+    end
+
+    subgraph docker["Docker Compose"]
+        proxy["LLM Proxy (FastAPI)<br/>:8000<br/>/v1/chat/completions<br/>/health"]
+        loadgen["Load Generator<br/>(Python asyncio)"]
+        prom["Prometheus<br/>:9090"]
+        grafana["Grafana<br/>:3000"]
+        ollama_docker["Ollama<br/>:11434<br/>(docker-compose, fallback)"]
+    end
+
+    proxy -->|"${OLLAMA_BASE_URL}"| ollama_native
+    proxy -->|"/metrics"| prom
+    loadgen -->|"POST /v1/chat/completions"| proxy
+    prom --> grafana
 ```
 
 ### 1-2. Ollama Hybrid Strategy
@@ -56,40 +41,45 @@ Docker Compose에 Ollama 서비스를 포함하여 `docker compose up` 한 번�
 
 ### 1-3. Request Lifecycle (Streaming)
 
-```
-Client ──POST /v1/chat/completions──► Proxy
-                                        │
-                                   [1] semaphore.acquire()
-                                   [2] llm_active_requests.inc()
-                                   [3] start = time.monotonic()
-                                        │
-                                   [4] stream POST to Ollama
-                                        │
-                                   [5] first content chunk → TTFT 기록
-                                   [6] SSE chunks passthrough to client
-                                   [7] usage chunk → token counts 기록
-                                   [8] [DONE] → duration, TPS 기록
-                                        │
-                                   [9] llm_active_requests.dec()
-                                   [10] semaphore.release()
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant P as Proxy
+    participant O as Ollama
+
+    C->>P: POST /v1/chat/completions
+    P->>P: [1] semaphore.acquire()
+    P->>P: [2] llm_active_requests.inc()
+    P->>P: [3] start = time.monotonic()
+    P->>O: [4] stream POST
+    O-->>P: [5] first content chunk → TTFT 기록
+    O-->>P: [6] SSE chunks passthrough
+    P-->>C: [6] SSE chunks passthrough
+    O-->>P: [7] usage chunk → token counts 기록
+    O-->>P: [8] [DONE] → duration, TPS 기록
+    P->>P: [9] llm_active_requests.dec()
+    P->>P: [10] semaphore.release()
 ```
 
 ### 1-4. Request Lifecycle (Non-Streaming)
 
-```
-Client ──POST /v1/chat/completions──► Proxy
-                                        │
-                                   [1] semaphore.acquire()
-                                   [2] llm_active_requests.inc()
-                                   [3] start = time.monotonic()
-                                        │
-                                   [4] POST to Ollama (stream=false)
-                                   [5] response 수신 → duration 기록
-                                   [6] usage에서 token counts 기록
-                                   [7] TPS 계산 및 기록
-                                        │
-                                   [8] llm_active_requests.dec()
-                                   [9] semaphore.release()
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant P as Proxy
+    participant O as Ollama
+
+    C->>P: POST /v1/chat/completions
+    P->>P: [1] semaphore.acquire()
+    P->>P: [2] llm_active_requests.inc()
+    P->>P: [3] start = time.monotonic()
+    P->>O: [4] POST (stream=false)
+    O-->>P: [5] response → duration 기록
+    P->>P: [6] usage → token counts 기록
+    P->>P: [7] TPS 계산 및 기록
+    P-->>C: JSON response
+    P->>P: [8] llm_active_requests.dec()
+    P->>P: [9] semaphore.release()
 ```
 
 ---
@@ -188,12 +178,11 @@ Constitution #2(메트릭 SSOT)에 따라 모든 메트릭은 `proxy/metrics.py`
 
 ### 3-5. Concurrency Control
 
-```
-MAX_CONCURRENT_REQUESTS = 4 (configurable)
-
-asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
-├── 세마포어 내부: llm_active_requests (Gauge)
-└── 세마포어 대기: llm_queue_depth (Gauge)
+```mermaid
+graph TD
+    sem["asyncio.Semaphore(MAX_CONCURRENT_REQUESTS = 4)"]
+    sem --> inside["llm_active_requests (Gauge)<br/>세마포어 내부"]
+    sem --> waiting["llm_queue_depth (Gauge)<br/>세마포어 대기"]
 ```
 
 세마포어 기반 동시성 제한으로 Ollama의 순차 처리 특성을 명시적으로 관리한다. 부하 테스트에서 동시 요청이 세마포어 한도를 초과하면 `llm_queue_depth`가 증가하며, 이것이 관측의 핵심 포인트이다.
