@@ -223,7 +223,7 @@ Template variable: `$model` (label_values from `llm_requests_total`)
 | Panel | PromQL |
 |-------|--------|
 | Request Rate | `sum by (model) (rate(llm_requests_total{model=~"$model"}[5m]))` |
-| Error Rate % | `sum(rate(llm_request_errors_total{model=~"$model"}[5m])) / sum(rate(llm_requests_total{model=~"$model"}[5m])) * 100` |
+| Error Rate % | `sum(rate(llm_request_errors_total{model=~"$model"}[5m])) / sum(rate(llm_requests_total{model=~"$model"}[5m])) * 100 or vector(0)` |
 | Active Requests | `llm_active_requests` |
 | Queue Depth | `llm_queue_depth` |
 | Duration P50 | `histogram_quantile(0.50, sum(rate(llm_request_duration_seconds_bucket{model=~"$model"}[5m])) by (le))` |
