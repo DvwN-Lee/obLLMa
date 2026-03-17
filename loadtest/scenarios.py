@@ -172,6 +172,17 @@ SCENARIOS: dict[str, dict[str, Any]] = {
         },
         "model": None,
     },
+    "s-demo": {
+        "name": "S-Demo Quick",
+        "description": (
+            "Concurrency 2, 6 requests, short prompts. "
+            "Demo-friendly (~5min) scenario that demonstrates queuing effects."
+        ),
+        "concurrency": 2,
+        "num_requests": 6,
+        "prompts": _SHORT_PROMPTS,
+        "model": None,
+    },
     "s5": {
         "name": "S5 Model Comparison",
         "description": (
