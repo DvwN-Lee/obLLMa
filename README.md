@@ -4,30 +4,23 @@ LLM 서빙의 관측 가능성(Observability)을 구축하는 프로젝트입니
 
 ## Architecture
 
-```
-                    macOS Host
- ┌────────────────────────────────────────┐
- │  Ollama (native, Metal GPU)            │
- │  localhost:11434                        │
- └──────────▲─────────────────────────────┘
-            │
- ┌──────────┼─────────────────────────────────────┐
- │          │          Docker Compose              │
- │  ┌───────┴──────────────────┐                   │
- │  │  LLM Proxy (FastAPI)      │──► /metrics      │
- │  │  :8000                    │                   │
- │  └───────▲──────────────────┘                   │
- │          │                                      │
- │  ┌───────┴──────────────┐                        │
- │  │  Load Generator       │                        │
- │  │  (Python asyncio)     │                        │
- │  └──────────────────────┘                        │
- │                                                  │
- │  ┌──────────────┐    ┌────────────┐              │
- │  │  Prometheus   │───►│  Grafana    │             │
- │  │  :9090        │    │  :3000      │             │
- │  └──────────────┘    └────────────┘              │
- └──────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph host["macOS Host"]
+        ollama_native["Ollama (native, Metal GPU)<br/>localhost:11434"]
+    end
+
+    subgraph docker["Docker Compose"]
+        proxy["LLM Proxy (FastAPI)<br/>:8000"]
+        loadgen["Load Generator<br/>(Python asyncio)"]
+        prom["Prometheus<br/>:9090"]
+        grafana["Grafana<br/>:3000"]
+    end
+
+    proxy -->|"/metrics"| prom
+    proxy --> ollama_native
+    loadgen --> proxy
+    prom --> grafana
 ```
 
 **LLM Proxy**가 Ollama 앞단에서 요청을 중계하며, TTFT, TPS, 레이턴시 등 LLM 서빙 고유 메트릭을 Prometheus로 노출합니다.
@@ -189,6 +182,8 @@ See [benchmarks/results.md](benchmarks/results.md) for full data and analysis.
 │       └── llm-overview.json # Grafana dashboard
 ├── loadtest/
 │   ├── run.py               # CLI load generator
-│   └── scenarios.py         # S1~S5 scenario definitions
+│   ├── scenarios.py         # S1~S5 scenario definitions
+│   ├── requirements.txt     # httpx, asyncio
+│   └── DEMO-SCENARIO.md     # Demo flow guide
 └── benchmarks/              # Benchmark results
 ```
