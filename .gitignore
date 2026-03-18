@@ -60,3 +60,13 @@ memory/
 .playwright-mcp/
 docs/superpowers/
 .gitignore.saga-template
+.claude/SAGA-CORE.md
+.claude/agents/
+.claude/hooks/
+.claude/skills/
+docs/tasks.md
+docs/improvements/
+docs/handoffs/
+docs/plans/
+docs/findings/
+docs/verify-report-*.md
