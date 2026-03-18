@@ -1,10 +1,12 @@
 # Grafana 대시보드 검증 시나리오
 
-> 목적: 10개 패널 전체에 데이터를 채워서 대시보드 동작을 검증한다.
-> 프록시 URL: `http://localhost:8000` (기본값)
-> MAX_CONCURRENT_REQUESTS: 4
-> 모델: qwen2.5:7b (사전 pull 완료 상태)
-> 예상 소요: **~18-22분** (Native Metal GPU, 검증 포함)
+| 항목 | 값 |
+|------|-----|
+| **목적** | 10개 패널 전체에 데이터를 채워서 대시보드 동작을 검증한다 |
+| **프록시 URL** | `http://localhost:8000` (기본값) |
+| **MAX_CONCURRENT_REQUESTS** | 4 |
+| **모델** | qwen2.5:7b (사전 pull 완료 상태) |
+| **예상 소요** | ~18-22분 (Native Metal GPU, 검증 포함) |
 
 ---
 

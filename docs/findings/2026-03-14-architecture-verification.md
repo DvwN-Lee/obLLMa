@@ -1,8 +1,10 @@
 # findings: Architecture Verification
 
-**조사일**: 2026-03-14
-**조사 범위**: design.md 핵심 기술 가정 5건 (A1~A5) 검증
-**팀**: Researcher Session (3x researcher-worker 병렬)
+| 항목 | 값 |
+|------|-----|
+| **조사일** | 2026-03-14 |
+| **조사 범위** | design.md 핵심 기술 가정 5건 (A1~A5) 검증 |
+| **팀** | Researcher Session (3x researcher-worker 병렬) |
 
 ---
 

@@ -1,8 +1,10 @@
 # findings: LLM Serving Observability 기술 조사
 
-**조사일**: 2026-03-14
-**조사 범위**: Ollama API, FastAPI+prometheus_client 계측, Grafana 프로비저닝, LLM 서빙 메트릭 표준, 부하 테스트 도구
-**플랜 참조**: `docs/plans/2026-03-14-llm-serving-observability.md`
+| 항목 | 값 |
+|------|-----|
+| **조사일** | 2026-03-14 |
+| **조사 범위** | Ollama API, FastAPI+prometheus_client 계측, Grafana 프로비저닝, LLM 서빙 메트릭 표준, 부하 테스트 도구 |
+| **플랜 참조** | `docs/plans/2026-03-14-llm-serving-observability.md` |
 
 ---
 

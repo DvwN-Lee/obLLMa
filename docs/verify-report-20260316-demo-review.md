@@ -1,9 +1,11 @@
 # 검증 리포트: Demo 시나리오 적절성 분석
 
-**검증일**: 2026-03-16
-**검증 대상**: Load Test 시나리오 S1~S5 및 README Quick Start의 Demo 시연 적절성
-**검증 관점**: V-1 정확성 / V-3 성능 / V-4 Spec 정합성
-**기준**: project-brief.md 핵심 증명 대상 4항, Constitution #6 재현 가능 벤치마크
+| 항목 | 값 |
+|------|-----|
+| **검증일** | 2026-03-16 |
+| **검증 대상** | Load Test 시나리오 S1~S5 및 README Quick Start의 Demo 시연 적절성 |
+| **검증 관점** | V-1 정확성 / V-3 성능 / V-4 Spec 정합성 |
+| **기준** | project-brief.md 핵심 증명 대상 4항, Constitution #6 재현 가능 벤치마크 |
 
 ---
 

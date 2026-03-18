@@ -1,10 +1,12 @@
 # 검증 리포트: PR #1 재검증 (Revalidation)
 
-**검증일**: 2026-03-16
-**검증 대상**: PR #1 — fix: resolve Phase 4 VERIFY findings (M-1, M-2)
-**검증 관점**: V-1 정확성 / V-2 보안 / V-3 성능 / V-4 Spec 정합성
-**방법**: 4개 Analyst 서브에이전트 병렬 검증 + Lead Pessimistic Consolidation
-**선행 리포트**: `docs/verify-report-20260316.md` (1차 검증)
+| 항목 | 값 |
+|------|-----|
+| **검증일** | 2026-03-16 |
+| **검증 대상** | PR #1 — fix: resolve Phase 4 VERIFY findings (M-1, M-2) |
+| **검증 관점** | V-1 정확성 / V-2 보안 / V-3 성능 / V-4 Spec 정합성 |
+| **방법** | 4개 Analyst 서브에이전트 병렬 검증 + Lead Pessimistic Consolidation |
+| **선행 리포트** | `docs/verify-report-20260316.md` (1차 검증) |
 
 ---
 

@@ -23,11 +23,13 @@
 
 ### DoD 체크리스트
 
-**Functionality**: 5/5 PASS
-**Metric Accuracy**: 6/6 PASS
-**Dashboard**: 3/3 PASS
-**Benchmark**: 2/3 PASS (2개 모델 비교 미완)
-**Documentation**: 1/2 PASS (README 갱신 필요)
+| 영역 | 결과 |
+|------|------|
+| **Functionality** | 5/5 PASS |
+| **Metric Accuracy** | 6/6 PASS |
+| **Dashboard** | 3/3 PASS |
+| **Benchmark** | 2/3 PASS (2개 모델 비교 미완) |
+| **Documentation** | 1/2 PASS (README 갱신 필요) |
 
 ---
 
@@ -92,6 +94,7 @@
 사유: MAJOR 발견사항 M-1, M-2 미해결 (AC-007 미충족)
 
 **통과 조건:**
+
 1. M-1 해소: README.md clone URL 갱신
 2. M-2 해소: README.md 벤치마크 요약 추가
 3. M-3 결정: 14b 벤치마크 실행 또는 AC-006 범위 재정의
