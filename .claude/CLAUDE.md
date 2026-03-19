@@ -51,9 +51,9 @@ llm-serving-observability 프로젝트 관리 시 반드시 준수해야 하는 
 
 ---
 
-## PR Writing Rules
+## PR 작성 규칙
 
-- Do not include "Generated with [Claude Code](...)" or "🤖 Generated with" lines in PR descriptions.
-- Do not include "Co-Authored-By: Claude ..." lines in PR descriptions or commit messages.
-- Use `.claude/hooks/pr-wrapper.sh` to strip these lines before posting a PR description.
-- Use `.claude/hooks/strip-claude-meta.sh` as a commit-msg hook to strip them from commits.
+- PR 설명에 "Generated with [Claude Code](...)" 또는 "🤖 Generated with" 라인을 포함하지 않는다.
+- PR 설명이나 커밋 메시지에 "Co-Authored-By: Claude ..." 라인을 포함하지 않는다.
+- `.claude/hooks/pr-wrapper.sh`로 PR 설명 게시 전 해당 라인을 제거한다.
+- `.claude/hooks/strip-claude-meta.sh`를 commit-msg hook으로 사용하여 커밋에서 제거한다.

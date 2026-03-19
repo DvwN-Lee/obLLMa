@@ -276,7 +276,7 @@ Docker CPU 사용 시 추가 주의사항:
 
 ---
 
-## Known Issues
+## 알려진 이슈
 
 ### 1. KEEP_ALIVE=5m에 의한 Cold Start
 

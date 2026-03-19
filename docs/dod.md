@@ -7,25 +7,25 @@
 
 ---
 
-## Phase 2 → 3 Gate Checklist
+## Phase 2 → 3 Gate 체크리스트
 
 Phase 3 BUILD 진입 전 아래 항목이 모두 충족되어야 한다.
 
-### Design Completeness
+### 설계 완료
 
 - [x] design.md 작성 완료 — 아키텍처, 인터페이스, 데이터 모델, 기술 결정 포함
 - [x] tasks.md 작성 완료 — 7개 태스크, AC 정의, 의존성 그래프 순환 없음
 - [x] dod.md 작성 완료 (이 문서)
 - [x] tasks.md의 모든 태스크에 AC 1개 이상 정의
 
-### Interface Definition
+### 인터페이스 정의
 
 - [x] Proxy API 3개 엔드포인트 정의 (/v1/chat/completions, /health, /metrics)
 - [x] Prometheus 메트릭 11개 정의 (이름, 타입, 레이블, 버킷)
 - [x] Grafana 대시보드 패널 10개 + PromQL 쿼리 정의
 - [x] 환경변수 5개 정의 (OLLAMA_BASE_URL 등)
 
-### Constitution Alignment
+### Constitution 정합성
 
 - [x] Constitution #1 (Docker Compose 자족성): Ollama Hybrid Strategy 문서화
 - [x] Constitution #2 (메트릭 SSOT): proxy/metrics.py 단일 정의 명시
@@ -41,7 +41,7 @@ Phase 3 BUILD 진입 전 아래 항목이 모두 충족되어야 한다.
 
 Phase 3 완료 시 아래 항목이 모두 충족되어야 한다.
 
-### Functionality
+### 기능
 
 - [x] `docker compose up -d` → 전체 스택 헬스체크 통과
 - [x] `POST /v1/chat/completions` → streaming + non-streaming 정상 동작
@@ -49,7 +49,7 @@ Phase 3 완료 시 아래 항목이 모두 충족되어야 한다.
 - [x] Grafana 대시보드 자동 프로비저닝, $model 변수 동작
 - [x] Load Generator S1~S5 시나리오 실행 가능
 
-### Metric Accuracy
+### 메트릭 정확성
 
 - [x] TTFT: 스트리밍 첫 content 청크 시점 정확히 기록
 - [x] TPS: output_tokens / duration 올바르게 계산
@@ -58,19 +58,19 @@ Phase 3 완료 시 아래 항목이 모두 충족되어야 한다.
 - [x] Queue Depth: 세마포어 대기 요청 수와 일치
 - [x] Histogram 버킷: design.md 3-1의 커스텀 버킷 적용 확인
 
-### Dashboard
+### 대시보드
 
 - [x] 10개 패널 모두 데이터 표시 (부하 발생 후 No Data 없음)
 - [x] PromQL 쿼리 정상 동작 (Prometheus에서 직접 검증)
 - [x] $model 변수로 모델별 필터링 동작
 
-### Benchmark
+### 벤치마크
 
 - [ ] ~~최소 2개 모델 벤치마크 완료~~ — **Accepted Partial**: qwen2.5:7b 완료, 14b는 향후 진행 (R-2 승인, 2026-03-16)
 - [x] benchmarks/results.md에 결과 기록
 - [x] Grafana 스크린샷 2장 이상
 
-### Documentation
+### 문서화
 
 - [x] README.md: Quick Start 5단계 이내
 - [x] README.md: 아키텍처 다이어그램, 스크린샷 포함
