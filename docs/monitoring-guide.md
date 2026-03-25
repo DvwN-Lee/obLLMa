@@ -23,49 +23,48 @@
 
 ### 1.1 전체 데이터 흐름
 
-```
-┌─────────────┐    /v1/chat/completions    ┌──────────────────────────────────────────┐
-│             │ ─────────────────────────► │           FastAPI Proxy (:8000)          │
-│   Client    │                            │                                          │
-│ (curl / k6) │ ◄───────────────────────── │  ┌─────────────────────────────────────┐ │
-│             │    SSE stream / JSON        │  │        MonitoredSemaphore           │ │
-└─────────────┘                            │  │  (MAX_CONCURRENT_REQUESTS=4)        │ │
-                                           │  │  • ACTIVE_REQUESTS.inc/dec()        │ │
-                                           │  │  • QUEUE_DEPTH.set()                │ │
-                                           │  └───────────────┬─────────────────────┘ │
-                                           │                  │ acquire/release        │
-                                           │  ┌───────────────▼─────────────────────┐ │
-                                           │  │         Request Handler              │ │
-                                           │  │  • TTFT 측정 (첫 토큰 도착 시)       │ │
-                                           │  │  • Duration, TPS, TPOT 기록          │ │
-                                           │  │  • Token 카운트 누적                 │ │
-                                           │  │  • 에러/성공 상태 레이블링           │ │
-                                           │  └───────────────┬─────────────────────┘ │
-                                           └──────────────────┼───────────────────────┘
-                                                              │ /v1/chat/completions
-                                                              ▼
-                                           ┌──────────────────────────────────────────┐
-                                           │           Ollama (:11434)                │
-                                           │  • OpenAI 호환 SSE 스트리밍 (`/v1/chat/completions`) │
-                                           │  • 최종 청크에 usage 포함                │
-                                           │  • /api/ps — 로드된 모델 정보 제공       │
-                                           └──────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Client
+        C["Client\n(curl / loadtest)"]
+    end
 
-                    ┌──────────────────────────────────────────────────────────────────┐
-                    │  메트릭 수집 경로 (별도 흐름)                                    │
-                    │                                                                  │
-                    │  Proxy /metrics  ──(15s scrape)──►  Prometheus (:9090)          │
-                    │  (prometheus_client)                  • TSDB 7일 보존            │
-                    │                                       • PromQL 엔진             │
-                    │                                              │                   │
-                    │                                              │ datasource        │
-                    │                                              ▼                   │
-                    │                                    Grafana (:3000)               │
-                    │                                      • JSON 프로비저닝           │
-                    │                                      • 30s 자동 갱신            │
-                    │                                      • Image Renderer 포함       │
-                    └──────────────────────────────────────────────────────────────────┘
+    subgraph Proxy["FastAPI Proxy :8000"]
+        direction TB
+        SEM["MonitoredSemaphore\nMAX_CONCURRENT_REQUESTS=4"]
+        HANDLER["Request Handler"]
+        METRICS_EP["/metrics endpoint"]
+        SEM -->|acquire / release| HANDLER
+    end
+
+    subgraph Ollama["Ollama :11434"]
+        LLM["LLM 추론 엔진\nqwen2.5:7b"]
+    end
+
+    subgraph Monitoring["메트릭 수집 경로"]
+        PROM["Prometheus :9090\nTSDB 7일 보존\nPromQL 엔진"]
+        GRAF["Grafana :3000\nJSON 프로비저닝\n30s 자동 갱신"]
+    end
+
+    C -- "/v1/chat/completions" --> SEM
+    HANDLER -- "SSE stream / JSON" --> C
+    HANDLER -- "/v1/chat/completions" --> LLM
+    LLM -- "SSE 스트리밍 + usage" --> HANDLER
+
+    METRICS_EP -- "15s scrape" --> PROM
+    PROM -- "datasource" --> GRAF
 ```
+
+**Proxy 내부 계측 포인트**:
+
+| 계측 시점 | 기록 메트릭 |
+|----------|-----------|
+| 세마포어 acquire/release | `llm_active_requests`, `llm_queue_depth` |
+| 첫 토큰 도착 | `llm_ttft_seconds` |
+| 응답 완료 | `llm_request_duration_seconds`, `llm_tokens_per_second`, `llm_time_per_output_token_seconds` |
+| 토큰 카운트 | `llm_input_tokens_total`, `llm_output_tokens_total` |
+| 요청 결과 | `llm_requests_total`, `llm_request_errors_total` |
+| 30s 폴링 | `llm_model_loaded` |
 
 > **용어**: SSE(Server-Sent Events)는 HTTP 기반 단방향 이벤트 스트림 프로토콜이다. NDJSON(Newline-Delimited JSON)은 줄 단위로 구분된 JSON 형식이다. Ollama의 네이티브 API(`/api/chat`)는 NDJSON을, OpenAI 호환 API(`/v1/chat/completions`)는 SSE를 사용한다.
 
