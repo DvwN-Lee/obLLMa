@@ -1,4 +1,4 @@
-# dod.md: llm-serving-observability
+# DoD(Definition of Done, 완료 기준): llm-serving-observability
 
 > **Phase**: 2 (DESIGN) → Phase 3 (BUILD) Gate 조건
 > **Track**: Feature

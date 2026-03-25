@@ -32,7 +32,7 @@ graph TB
 
 ### 1-2. Ollama 하이브리드 전략
 
-Docker Compose에 Ollama 서비스를 포함하여 `docker compose up` 한 번으로 전체 스택이 기동되도록 한다 (Constitution #1 준수). 단, macOS에서 Metal GPU를 사용하려면 네이티브 Ollama가 필요하므로 `OLLAMA_BASE_URL` 환경변수로 전환한다.
+Docker Compose에 Ollama 서비스를 포함하여 `docker compose up` 한 번으로 전체 스택이 기동되도록 한다 (Constitution(프로젝트 운용 원칙, CLAUDE.md 참조) #1 준수). 단, macOS에서 Metal GPU를 사용하려면 네이티브 Ollama가 필요하므로 `OLLAMA_BASE_URL` 환경변수로 전환한다.
 
 | 모드 | OLLAMA_BASE_URL | GPU | 용도 |
 |------|----------------|-----|------|
@@ -53,7 +53,7 @@ sequenceDiagram
     P->>P: [3] start = time.monotonic()
     P->>O: [4] stream POST
     O-->>P: [5] first content chunk → TTFT 기록
-    O-->>P: [6] SSE chunks passthrough
+    O-->>P: [6] SSE(Server-Sent Events) chunks passthrough
     P-->>C: [6] SSE chunks passthrough
     O-->>P: [7] usage chunk → token counts 기록
     O-->>P: [8] [DONE] → duration, TPS 기록
@@ -136,7 +136,7 @@ Ollama의 `/v1/chat/completions`는 OpenAI와 동일한 SSE 포맷(`data: {...}\
 
 ## 3. 데이터 모델: 메트릭
 
-Constitution #2(메트릭 SSOT)에 따라 모든 메트릭은 `proxy/metrics.py` 한 파일에서 정의한다.
+Constitution #2(메트릭 SSOT(Single Source of Truth))에 따라 모든 메트릭은 `proxy/metrics.py` 한 파일에서 정의한다.
 
 ### 3-1. 요청 수준 메트릭
 
@@ -207,7 +207,7 @@ Template variable: `$model` (`llm_requests_total`의 label_values)
 | 2 | Tokens Per Second (timeseries) | TPOT - Time Per Output Token (timeseries) | h=8 |
 | 3 | Input vs Output Tokens Rate (timeseries) | Model Info (table) | h=6 |
 
-### 4-3. 주요 PromQL 쿼리
+### 4-3. 주요 PromQL(Prometheus Query Language) 쿼리
 
 | Panel | PromQL |
 |-------|--------|

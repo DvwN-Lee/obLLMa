@@ -2,28 +2,30 @@
 
 LLM 서빙의 관측 가능성(Observability)을 구축하는 프로젝트입니다. Ollama 기반 LLM 서빙에 Prometheus 메트릭 계측과 Grafana 대시보드를 구현합니다.
 
+일반적인 웹 서비스 모니터링(RPS, 레이턴시)과 달리, LLM 서빙은 요청당 수십 초의 추론 시간과 토큰 단위 스트리밍이라는 고유한 특성을 가집니다. TTFT(Time to First Token), 큐잉 효과 등 기존 메트릭으로는 포착할 수 없는 LLM 고유 지연 패턴을 계측하고 시각화합니다.
+
 ## 아키텍처
 
 ```mermaid
 graph TB
     subgraph host["macOS Host"]
         ollama_native["Ollama (native, Metal GPU)<br/>localhost:11434"]
+        loadgen["Load Generator<br/>(Python asyncio + httpx)"]
     end
 
     subgraph docker["Docker Compose"]
         proxy["LLM Proxy (FastAPI)<br/>:8000"]
-        loadgen["Load Generator<br/>(Python asyncio)"]
         prom["Prometheus<br/>:9090"]
         grafana["Grafana<br/>:3000"]
     end
 
+    loadgen --> proxy
     proxy -->|"/metrics"| prom
     proxy --> ollama_native
-    loadgen --> proxy
     prom --> grafana
 ```
 
-**LLM Proxy**가 Ollama 앞단에서 요청을 중계하며, TTFT, TPS, 레이턴시 등 LLM 서빙 고유 메트릭을 Prometheus로 노출합니다.
+**LLM Proxy**가 Ollama 앞단에서 요청을 중계하며, TTFT(Time to First Token), TPS(Tokens Per Second), TPOT(Time Per Output Token), 레이턴시 등 LLM 서빙 고유 메트릭을 Prometheus로 노출합니다.
 
 ## LLM 서빙 메트릭
 
@@ -42,6 +44,11 @@ graph TB
 | `llm_model_loaded` | Gauge | 로드된 모델 정보 |
 
 ## 빠른 시작
+
+### 사전 조건
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 설치
+- (선택) [Ollama](https://ollama.com/) 설치 — Native Metal GPU 사용 시 Docker CPU 대비 3~5x 빠름
 
 ### 1. 클론 및 설정
 
@@ -111,7 +118,7 @@ python run.py --scenario s1 --base-url http://localhost:8000
 | Error Rate % | 에러율 퍼센트 |
 | Active Requests | 현재 처리 중인 요청 게이지 |
 | Queue Depth | 대기 중인 요청 게이지 |
-| Request Duration P50/P95/P99 | E2E 레이턴시 분포 |
+| Request Duration P50/P95/P99 | E2E 레이턴시 분포 (P50=중앙값, P95=상위 5%, P99=상위 1%) |
 | TTFT P50/P95/P99 | 첫 토큰까지 시간 분포 |
 | Tokens Per Second | 토큰 생성 속도 |
 | TPOT | 토큰당 생성 시간 |
@@ -152,7 +159,7 @@ qwen2.5:7b (Q4_K_M), Apple Silicon Docker Desktop (CPU mode):
 | S1 Baseline (동시 1) | 0.8s | 9.8 tok/s | 33.1s | 0% |
 | S3 Sustained (동시 4, 20건) | 161.1s | 3.0 tok/s | 292.6s | 0% |
 
-**핵심 인사이트**: 부하 시 TTFT는 ~264x 악화(0.8s → 212s)되지만 TPS는 3x만 하락한다 — TTFT는 처리량만으로는 보이지 않는 Queuing 효과를 포착하는 Canary 메트릭이다.
+**핵심 인사이트**: 부하 시 TTFT는 ~264x 악화(0.8s → 212s)되지만 TPS는 3x만 하락한다 — TTFT는 처리량만으로는 보이지 않는 Queuing 효과를 포착하는 Canary 메트릭(이상 징후를 조기 감지하는 선행 지표)이다.
 
 전체 데이터와 분석은 [benchmarks/results.md](benchmarks/results.md) 참조.
 

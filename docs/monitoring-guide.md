@@ -49,7 +49,7 @@ flowchart LR
     C -- "/v1/chat/completions" --> SEM
     HANDLER -- "SSE stream / JSON" --> C
     HANDLER -- "/v1/chat/completions" --> LLM
-    LLM -- "SSE 스트리밍 + usage" --> HANDLER
+    LLM -- "SSE 응답\n(/v1/chat/completions)" --> HANDLER
 
     METRICS_EP -- "15s scrape" --> PROM
     PROM -- "datasource" --> GRAF
@@ -72,7 +72,7 @@ flowchart LR
 
 | 컴포넌트 | 역할 | 포트 |
 |---------|------|------|
-| **Ollama** | LLM 추론 엔진. `qwen2.5:7b` 등 모델을 로컬에서 실행. NDJSON 스트리밍으로 토큰을 순차 반환. | 11434 |
+| **Ollama** | LLM 추론 엔진. `qwen2.5:7b` 등 모델을 로컬에서 실행. OpenAI 호환 API(`/v1/chat/completions`) 사용 시 SSE, 네이티브 API(`/api/chat`) 사용 시 NDJSON으로 토큰을 순차 반환. | 11434 |
 | **FastAPI Proxy** | 계측(Instrumentation) 레이어. OpenAI API 형식(`/v1/chat/completions`)을 받아 Ollama로 프록시하면서 모든 메트릭을 수집. | 8000 |
 | **Prometheus** | TSDB(Time Series Database). 15초마다 Proxy의 `/metrics` 엔드포인트를 스크래핑하여 저장. 7일 보존. | 9090 |
 | **Grafana** | 시각화 레이어. `grafana/dashboards/*.json`으로 대시보드를 자동 프로비저닝. 30초마다 갱신. | 3000 |
@@ -395,7 +395,7 @@ llm_active_requests
 **정상/비정상 범위**:
 - 0~4: 정상 (MAX_CONCURRENT_REQUESTS 기본값 4)
 - 지속적으로 4이면 용량 포화 → M10 Queue Depth도 함께 확인
-- 황색 임계값: 50, 적색: 100 (대용량 배포 대비 여유 있게 설정됨)
+- Grafana 임계값: 황색=50, 적색=100 (현재 프로젝트 기준 0~4가 정상. 임계값은 `MAX_CONCURRENT_REQUESTS` 상향 시 스케일링을 고려한 사전 설정값)
 
 ---
 
