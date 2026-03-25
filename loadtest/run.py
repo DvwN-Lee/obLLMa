@@ -356,14 +356,20 @@ async def _check_available_models(ollama_url: str = "http://localhost:11434") ->
     return set()
 
 
-async def _run_model_comparison(scenario: dict, base_url: str, model_override: str | None, stream: bool = True) -> None:
+async def _run_model_comparison(
+    scenario: dict,
+    base_url: str,
+    model_override: str | None,
+    stream: bool = True,
+    ollama_url: str = "http://localhost:11434",
+) -> None:
     """S5: run same scenario sequentially for each model."""
     models: list[str] = scenario.get("models", [])
     if model_override:
         models = [model_override]
 
     # Pre-check: warn and skip unavailable models (queries Ollama directly)
-    available = await _check_available_models()
+    available = await _check_available_models(ollama_url)
     if available:
         missing = [m for m in models if m not in available]
         if missing:
@@ -415,7 +421,7 @@ async def _dispatch(args: argparse.Namespace) -> None:
     elif scenario_key == "s4":
         await _run_variable_prompt(scenario, args.base_url, effective_model, use_stream)
     elif scenario_key == "s5":
-        await _run_model_comparison(scenario, args.base_url, args.model, use_stream)
+        await _run_model_comparison(scenario, args.base_url, args.model, use_stream, ollama_url=args.ollama_url)
     else:
         # S1, S3, S-Demo — simple fixed-concurrency run
         await _run_simple(scenario, args.base_url, effective_model, stream=use_stream)
@@ -463,6 +469,15 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         help="Use non-streaming mode (default: streaming).",
+    )
+    parser.add_argument(
+        "--ollama-url",
+        default="http://localhost:11434",
+        metavar="URL",
+        help=(
+            "Ollama API URL for S5 model pre-check "
+            "(default: http://localhost:11434)"
+        ),
     )
     return parser
 

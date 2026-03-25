@@ -43,9 +43,12 @@ ollama pull qwen2.5:7b
 # .env에 Native Ollama URL 설정 (이미 .env가 있으면 해당 라인을 직접 수정)
 echo "OLLAMA_BASE_URL=http://host.docker.internal:11434" > .env
 
-docker compose up -d
+# Docker Ollama를 제외하고 기동 (포트 11434 충돌 방지)
+docker compose up -d proxy prometheus grafana
 docker compose ps --format "table {{.Service}}\t{{.Ports}}"
 ```
+
+> **포트 충돌 주의**: `docker compose up -d` (전체 기동) 시 Docker Ollama가 포트 `11434`를 선점하여, `run.py`의 S5 모델 사전 확인이 Docker Ollama(7b만 존재)에 연결됩니다. Native Ollama 사용 시 반드시 `proxy prometheus grafana`만 기동하거나, 이미 전체 기동한 경우 `docker compose stop ollama`를 실행하세요.
 
 포트 충돌 시 `.env`로 세 포트 모두 오버라이드:
 ```bash

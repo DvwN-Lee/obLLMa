@@ -58,6 +58,15 @@ services:
       proxy:
         condition: service_healthy
 
+  renderer:
+    image: grafana/grafana-image-renderer:3.11.6
+    environment:
+      - ENABLE_METRICS=true
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
   grafana:
     image: grafana/grafana:11.1.0
     ports:
@@ -66,12 +75,15 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_RENDERING_SERVER_URL=http://renderer:8081/render
+      - GF_RENDERING_CALLBACK_URL=http://grafana:3000/
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
+      - renderer
 
 volumes:
   ollama-data:

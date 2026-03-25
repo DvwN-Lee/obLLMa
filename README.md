@@ -97,9 +97,9 @@ python run.py --scenario s1 --base-url http://localhost:8000
 
 `http://localhost:3000` 에 접속하면 LLM Serving Overview 대시보드가 자동 프로비저닝됩니다.
 
-| 부하 전 | 부하 후 |
-|:-------:|:-------:|
-| ![Baseline](docs/screenshots/grafana-dashboard-baseline.png) | ![Under Load](docs/screenshots/grafana-dashboard.png) |
+| Baseline (전체 메트릭) | Peak Load (Active Requests) | Model Comparison (7b vs 14b) |
+|:-------:|:-------:|:-------:|
+| ![Baseline](docs/screenshots/grafana-dashboard-baseline.png) | ![Peak Load](docs/screenshots/grafana-dashboard.png) | ![Model Comparison](docs/screenshots/grafana-dashboard-model-comparison.png) |
 
 ### 대시보드 패널
 
